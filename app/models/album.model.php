@@ -10,18 +10,53 @@ class AlbumModel
     }
 
     /**
-     * Obtiene y devuelve de la base de datos todas las tareas.
+     * Obtiene y devuelve de la base de datos tareas por filtros.
      */
-    function getAlbums()
+    function getAlbums($sortOrder, $sortField, $filterField, $filterValue, $resultLimit, $resultOffset)
     {
-        $query = $this->db->prepare('SELECT * FROM album');
-        $query->execute();
+        $params = [];
+        $sql = "SELECT * FROM album";
 
-        // $Albums es un arreglo de tareas
-        $Albums = $query->fetchAll(PDO::FETCH_OBJ);
+        $allowedFields = ['Nombre_Album', 'Año', 'Banda_ID'];
 
-        return $Albums;
+        if (!empty($filterField) && !empty($filterValue) && in_array($filterField, $allowedFields)) {
+            $sql .= ' WHERE ' . $filterField . ' = ?';
+            $params[] = $filterValue;
+        }
+
+        $allowedSortOrders = ['ASC', 'DESC'];
+
+        if (!empty($sortField) && in_array($sortField, $allowedFields)) {
+            $sql .= ' ORDER BY ' . $sortField;
+        } else if (empty($sortField)) {
+            $sql .= ' ORDER BY Nombre_Album'; 
+        } else {
+            throw new Exception("Campo de ordenación no permitido");
+        }
+        
+        if (!empty($sortOrder) && in_array($sortOrder, $allowedSortOrders)) {
+            $sql .= ' ' . $sortOrder;
+        } else if (empty($sortOrder)) {
+            $sql .= ' ASC'; 
+        } else {
+            throw new Exception("Tipo de ordenación no permitido");
+        }
+        
+        if (!empty($resultLimit) && is_numeric($resultLimit)) {
+            $sql .= ' LIMIT ' . (int) $resultLimit;
+        }
+
+        if (!empty($resultOffset) && is_numeric($resultOffset)) {
+            $sql .= ' OFFSET ' . (int) $resultOffset;
+        }
+
+        $query = $this->db->prepare($sql);
+        $query->execute($params);
+
+        return $query->fetchAll(PDO::FETCH_OBJ);
     }
+
+
 
     function getAlbumById($id)
     {
@@ -56,11 +91,17 @@ class AlbumModel
 
     public function updateAlbum($albumId, $campo, $nuevoValor)
     {
-        // Prepara la consulta SQL
-        $query = $this->db->prepare("UPDATE album SET {$campo} = ? WHERE Album_ID = ?");
+        $allowedFields = ['Nombre_Album', 'Año', 'Banda_ID'];
 
-        // Ejecuta la consulta con los valores del formulario
-        $query->execute([$nuevoValor, $albumId]);
+        if (in_array($campo, $allowedFields)) {
+            
+            $query = $this->db->prepare("UPDATE album SET {$campo} = ? WHERE Album_ID = ?");
+
+            $query->execute([$nuevoValor, $albumId]);
+        } else {
+            throw new Exception("Campo no permitido");
+        }
     }
+
 
 }

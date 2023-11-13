@@ -1,11 +1,10 @@
 <?php
 require_once './app/models/banda.model.php';
 require_once './app/views/api.view.php';
-require_once './app/helpers/auth.helper.php';
 
-class BandaController extends ApiController
+class BandaApiController extends ApiController
 {
-    private $model;
+    protected $model;
 
     public function __construct()
     {
@@ -13,26 +12,26 @@ class BandaController extends ApiController
         $this->model = new BandaModel();
     }
 
-    public function showBands()
+    public function getBands()
     {
-        // obtengo bandas del controlador
-        $bands = $this->model->getBandas();
+        $sortOrder = $_GET['sortOrder'] ?? null;
+        $sortField = $_GET['sortField'] ?? null;
+        $filterField = $_GET['filterField'] ?? null;
+        $filterValue = $_GET['filterValue'] ?? null;
+        $resultLimit = $_GET['resultLimit'] ?? null;
+        $resultOffset = $_GET['resultOffset'] ?? null;
+
+        // obtengo bandas del modelo
+        $bands = $this->model->getBandas($sortOrder, $sortField, $filterField, $filterValue, $resultLimit, $resultOffset);
 
         // muestro las bandas desde la vista
         $this->view->response($bands);
     }
 
-    public function showBandDetail($id)
+
+    public function addBand($params = null)
     {
-        // Obtén los datos de la banda
-        $band = $this->model->getBandaById($id);
 
-        // Muestra el detalle de la banda desde la vista
-        $this->view->showBandDetails($band);
-    }
-
-    public function addBand($params = null){
-        
         $band = $this->getData();
 
         if (empty($band->Nombre_banda) || empty($band->Fecha_Fundacion)) {
@@ -44,7 +43,8 @@ class BandaController extends ApiController
         }
     }
 
-    public function getBand($params = null) {
+    public function getBand($params = null)
+    {
         // obtengo el id del arreglo de params
         $id = $params[':ID'];
         $band = $this->model->getBandaById($id);
@@ -52,37 +52,37 @@ class BandaController extends ApiController
         // si no existe devuelvo 404
         if ($band)
             $this->view->response($band);
-        else 
+        else
             $this->view->response("La banda con el id=$id no existe", 404);
     }
 
-    public function deleteBand($params = null) {
-        
+    public function deleteBand($params = null)
+    {
+
         $id = $params[':ID'];
 
         $band = $this->model->getBandaById($id);
         if ($band) {
             $this->model->deleteBanda($id);
             $this->view->response($band);
-        } else 
+        } else
             $this->view->response("La banda con el id=$id no existe", 404);
     }
 
-    public function updateBand($params = []) {
-
+    public function updateBand($params = [])
+    {
         $Banda_ID = $params[':ID'];
         $band = $this->model->getBandaById($Banda_ID);
 
         if ($band) {
             $body = $this->getData();
-            $Nombre_banda = $body->Nombre_banda;
-            $Fecha_Fundacion = $body->Fecha_Fundacion;
-            $this->model->updateBanda($Banda_ID, $Nombre_banda, $Fecha_Fundacion);
+            $this->model->updateBanda($Banda_ID, 'Nombre_banda', $body->Nombre_banda);
+            $this->model->updateBanda($Banda_ID, 'Fecha_Fundacion', $body->Fecha_Fundacion);
             $this->view->response("Banda id=$Banda_ID actualizada con éxito", 200);
-        }
-        else 
+        } else
             $this->view->response("Banda id=$Banda_ID no encontrada", 404);
     }
+
 }
 
 

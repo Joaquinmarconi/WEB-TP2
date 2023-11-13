@@ -12,16 +12,51 @@ class BandaModel
     /**
      * Obtiene y devuelve de la base de datos todas las banda.
      */
-    function getBandas()
+    function getBandas($sortOrder, $sortField, $filterField, $filterValue, $resultLimit, $resultOffset)
     {
-        $query = $this->db->prepare('SELECT * FROM banda');
-        $query->execute();
 
-        // $Bandas es un arreglo de banda
-        $Bandas = $query->fetchAll(PDO::FETCH_OBJ);
+        $params = [];
+        $sql = "SELECT * FROM banda";
 
-        return $Bandas;
+        $allowedFields = ['Banda_ID', 'Nombre_Banda', 'Fecha_Fundacion'];
+
+        if (!empty($filterField) && !empty($filterValue) && in_array($filterField, $allowedFields)) {
+            $sql .= ' WHERE ' . $filterField . ' = ?';
+            $params[] = $filterValue;
+        }
+
+        if (!empty($sortField) && in_array($sortField, $allowedFields)) {
+            $sql .= ' ORDER BY ' . $sortField;
+        } else if (empty($sortField)) {
+            $sql .= ' ORDER BY Nombre_Banda';
+        } else {
+            throw new Exception("Campo de ordenación no permitido");
+        }
+
+        $allowedSortOrders = ['ASC', 'DESC'];
+
+        if (!empty($sortOrder) && in_array($sortOrder, $allowedSortOrders)) {
+            $sql .= ' ' . $sortOrder;
+        } else if (empty($sortOrder)) {
+            $sql .= ' ASC';
+        } else {
+            throw new Exception("Tipo de ordenación no permitido");
+        }
+
+        if (!empty($resultLimit) && is_numeric($resultLimit)) {
+            $sql .= ' LIMIT ' . (int) $resultLimit;
+        }
+
+        if (!empty($resultOffset) && is_numeric($resultOffset)) {
+            $sql .= ' OFFSET ' . (int) $resultOffset;
+        }
+
+        $query = $this->db->prepare($sql);
+        $query->execute($params);
+
+        return $query->fetchAll(PDO::FETCH_OBJ);
     }
+
 
     function getBandaById($id)
     {
@@ -38,10 +73,10 @@ class BandaModel
     /**
      * Inserta la tarea en la base de datos
      */
-    function insertBanda($title, $description, $priority)
+    function insertBanda($Nombre_banda, $Fecha_Fundacion)
     {
-        $query = $this->db->prepare('INSERT INTO banda (titulo, descripcion, prioridad) VALUES(?,?,?)');
-        $query->execute([$title, $description, $priority]);
+        $query = $this->db->prepare('INSERT INTO banda (Nombre_banda, Fecha_Fundacion) VALUES(?,?)');
+        $query->execute([$Nombre_banda, $Fecha_Fundacion]);
 
         return $this->db->lastInsertId();
     }
@@ -49,17 +84,24 @@ class BandaModel
 
     function deleteBanda($id)
     {
-        $query = $this->db->prepare('DELETE FROM banda WHERE id = ?');
+        $query = $this->db->prepare('DELETE FROM banda WHERE Banda_ID = ?');
         $query->execute([$id]);
     }
 
-    
+
     public function updateBanda($bandaId, $campo, $nuevoValor)
     {
-        // Prepara la consulta SQL
-        $query = $this->db->prepare("UPDATE banda SET {$campo} = ? WHERE Banda_ID = ?");
+        $allowedFields = ['Nombre_banda', 'Fecha_Fundacion'];
 
-        // Ejecuta la consulta con los valores del formulario
-        $query->execute([$nuevoValor, $bandaId]);
+        if (in_array($campo, $allowedFields)) {
+            $query = $this->db->prepare("UPDATE banda SET {$campo} = ? WHERE Banda_ID = ?");
+
+            $query->execute([$nuevoValor, $bandaId]);
+        } else {
+            throw new Exception("Campo no permitido");
+        }
     }
+
 }
+
+
